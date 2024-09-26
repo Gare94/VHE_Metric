@@ -1,0 +1,11 @@
+﻿population,sex.name,sex.id,energyreq.total.kcals,bmilk.kcals,energyreq.diet.kcals,application
+0-2 months,female,2,528,528,0,total
+3-5 months,female,2,528,434,94,total
+6-8 months,female,2,611,403,208,total
+9-11 months,female,2,694,379,315,total
+12-23 months,female,2,865,346,519,total
+0-2 months,male,1,598,598,0,total
+3-5 months,male,1,598,434,164,total
+6-8 months,male,1,678,403,275,total
+9-11 months,male,1,753,379,374,total
+12-23 months,male,1,948,346,602,total
