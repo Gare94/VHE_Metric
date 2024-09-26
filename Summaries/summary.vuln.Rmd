@@ -1,0 +1,129 @@
+---
+title: "summary.LSFF.Vulnerable.group"
+author: "Gareth Osman"
+date: "2023-05-03"
+output: html_document
+Objective: 'Using HH member specific nutrient vulnerability thresholds to calculate prevalence of apparent inadequacy'
+---
+
+> Packages
+
+```{r}
+
+if (!require('srvyr')) install.packages('srvyr'); library('srvyr')
+if (!require('here')) install.packages('here'); library('here')
+if (!require('tidyverse')) install.packages('tidyverse'); library('tidyverse')
+
+#Set to max of 3 decimal number
+options(scipen = 10, digits=3)
+
+```
+
+1. Apparent intake inadequacy
+
+```{r}
+ihs5.sep <- read.csv(here::here('ihs5.sep.csv')) #Geographic variables 
+ihs5.sep <- ihs5.sep %>% select(HHID, urban, district,  res.sep, hh_wgt) 
+
+ihs5.filt <- haven::read_dta(here::here('ihs5_module/hh_mod_a_filt.dta')) ##Geographic variable
+ihs5.filt <- ihs5.filt %>% select(HHID, ea_id)
+
+
+ihs5.sep <- merge(x=ihs5.sep, y=ihs5.filt, by.x = 'HHID', by.y = 'HHID', fill=-9999, all.x = TRUE)
+
+#Vitamin A 
+ihs5.va.f <- read.csv(here::here('vuln.group/supply.Mn/results/va.F.vuln.csv'))
+ihs5.va.f <- ihs5.va.f %>% select(HHID, va.afe.F:va.vuln.F.inad)
+
+#Zinc 
+ihs5.zn.f <- read.csv(here::here('vuln.group/supply.Mn/results/zn.F.vuln.csv'))
+ihs5.zn.f <- ihs5.zn.f %>% select(HHID, zn.afe.F:zn.vuln.F.inad)
+
+#Merging geographic variables with the micronutrients 
+ihs5.va.f <- merge(x=ihs5.va.f, y=ihs5.sep, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va.nf <- merge(x=ihs5.va.nf, y=ihs5.sep, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn.f <- merge(x=ihs5.zn.f, y=ihs5.sep, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn.nf <- merge(x=ihs5.zn.nf, y=ihs5.sep, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+
+#Survey design 
+w.ihs5.va.f <- ihs5.va.f %>% as_survey_design(ids = ea_id, strata =district, weights = hh_wgt, nest=T)
+w.ihs5.va.nf <- ihs5.va.nf %>% as_survey_design(ids = ea_id, strata =district, weights = hh_wgt, nest=T)
+w.ihs5.zn.f <- ihs5.zn.f %>% as_survey_design(ids = ea_id, strata =district, weights = hh_wgt, nest=T)
+w.ihs5.zn.nf <- ihs5.zn.nf %>% as_survey_design(ids = ea_id, strata =district, weights = hh_wgt, nest=T)
+
+```
+
+*Calculating prevalence of inadequancy*
+
+```{r}
+
+w.ihs5.va.f %>%
+  srvyr::group_by(urban, res.sep) %>%
+  srvyr::summarise(
+    vuln_inad = (survey_mean(va.vuln.F.inad=="Inadequate", proportion = TRUE, vartype = "ci",na.rm = T)) * 100,
+    afe_inad = (survey_mean(va.afe.F.inad=="Inadequate", proportion = TRUE, vartype = "ci",na.rm = T)) * 100) %>%     
+    select(urban, res.sep, vuln_inad, afe_inad)
+
+```
+
+2.Change in the number of households between AFE and VHE inadequacy.
+
+#1. Vitamin A
+
+```{r}
+#1. Vitamin A (all)
+
+ihs5.va.f <- read.csv(here::here('vuln.group/supply.Mn/results/va.F.vuln.csv'))
+ihs5.va.f <- ihs5.va.f %>% select(HHID, va.afe.F:va.vuln.F.inad)
+
+
+diff_adq_va <- ihs5.va.f %>% mutate(status_adq = case_when(va.afe.F.inad == "Adequate" & va.vuln.F.inad == "Adequate" ~ "unchanged_adq",
+                                                        va.afe.F.inad == "Inadequate" & va.vuln.F.inad == "Inadequate" ~ "unchanged_inadq",
+                                                        va.afe.F.inad == "Inadequate" & va.vuln.F.inad == "Adequate" ~ "now_adq",
+                                                        va.afe.F.inad == "Adequate" & va.vuln.F.inad == "Inadequate" ~ "now_inadq"))
+  
+diff_adq_va %>% count(status_adq)
+
+
+##1. Vitamin A (group by HAR)
+ihs5.va.f <- read.csv(here::here('vuln.group/supply.Mn/results/va.F.vuln.csv'))
+ihs5.va.f <- ihs5.va.f %>% select(HHID,vulnerable_equiv_H_AR_va, va.afe.F:va.vuln.F.inad)
+
+diff_adq_va <- ihs5.va.f %>% group_by(vulnerable_equiv_H_AR_va) %>% mutate(status_adq = case_when(va.afe.F.inad == "Adequate" & va.vuln.F.inad == "Adequate" ~ "unchanged_adq",
+                                                        va.afe.F.inad == "Inadequate" & va.vuln.F.inad == "Inadequate" ~ "unchanged_inadq",
+                                                        va.afe.F.inad == "Inadequate" & va.vuln.F.inad == "Adequate" ~ "now_adq",
+                                                        va.afe.F.inad == "Adequate" & va.vuln.F.inad == "Inadequate" ~ "now_inadq"))
+  
+df_va <- diff_adq_va %>% group_by(vulnerable_equiv_H_AR_va) %>% count(status_adq)
+
+```
+
+#2. Zinc 
+
+```{r}
+
+ihs5.zn.f <- read.csv(here::here('vuln.group/supply.Mn/results/zn.F.vuln.csv'))
+ihs5.zn.f <- ihs5.zn.f %>% select(HHID, zn.afe.F:zn.vuln.F.inad)
+
+diff_adq_zn <- ihs5.zn.f %>% mutate(status_adq = case_when(zn.afe.F.inad == "Adequate" & zn.vuln.F.inad == "Adequate" ~ "unchanged_adq",
+                                                        zn.afe.F.inad == "Inadequate" & zn.vuln.F.inad == "Inadequate" ~ "unchanged_inadq",
+                                                        zn.afe.F.inad == "Inadequate" & zn.vuln.F.inad == "Adequate" ~ "now_adq",
+                                                        zn.afe.F.inad == "Adequate" & zn.vuln.F.inad == "Inadequate" ~ "now_inadq"))
+  
+diff_adq_zn %>% count(status_adq)
+
+
+#Zinc (group_by)
+
+ihs5.zn.f <- read.csv(here::here('vuln.group/supply.Mn/results/zn.F.vuln.csv'))
+ihs5.zn.f <- ihs5.zn.f %>% select(HHID, vulnerable_equiv_H_AR_zn, zn.afe.F:zn.vuln.F.inad)
+
+diff_adq_zn <- ihs5.zn.f %>% group_by(vulnerable_equiv_H_AR_zn) %>% mutate(status_adq = case_when(zn.afe.F.inad == "Adequate" & zn.vuln.F.inad == "Adequate" ~ "unchanged_adq",
+                                                        zn.afe.F.inad == "Inadequate" & zn.vuln.F.inad == "Inadequate" ~ "unchanged_inadq",
+                                                        zn.afe.F.inad == "Inadequate" & zn.vuln.F.inad == "Adequate" ~ "now_adq",
+                                                        zn.afe.F.inad == "Adequate" & zn.vuln.F.inad == "Inadequate" ~ "now_inadq"))
+  
+
+df_zn <- diff_adq_zn %>% group_by(vulnerable_equiv_H_AR_zn) %>% count(status_adq)
+
+```
