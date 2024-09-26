@@ -1,0 +1,148 @@
+---
+title: "supply.zn-FORTIFICATION (Status quo)"
+author: "Gareth Osman"
+date: "2023-05-03"
+output: html_document
+Objective: 'Using HH member specific nutrient vulnerability thresholds to calculate prevalence of apparent inadequacy'
+---
+
+> Packages
+
+```{r}
+library(tidyverse)
+```
+
+>Data
+
+```{r}
+ihs5 <- read.csv(here::here('vuln.group/hh_mod_g_vulnfinal.csv'))
+ihs5 <- select(ihs5, -X)
+ihs5 <- ihs5 %>% filter(!is.na(ZN))
+
+hh.hme <- read.csv(here::here('vuln.group/hh.eq.factors.csv'))
+hh.hme <- select(hh.hme, -X)
+
+```
+
+>The IHS5 NCT is built with no fortification values for fortifiable products. Hence this chuck of code will create new variable for Zinc assuming status quo fortification values (Tang et al., 2021) in order to model the current 'fortification' situtation in Malawi: 
+
+#Wheat flour(110); Bread(111); Buns, scones(112); Mandazi(827)
+
+```{r}
+
+ihs5[ihs5$item_code==110, "ZN"] <- 2.3
+ihs5[ihs5$item_code==111, "ZN"] <- 1.9
+ihs5[ihs5$item_code==112, "ZN"] <- 0.9
+ihs5[ihs5$item_code==827, "ZN"] <- 1
+
+```
+
+1. MN supply/food item = multiply quantity of foods consumed with MN composition of food
+#Fortification scenario
+#ZINC supply 
+```{r}
+ihs5$zn.supply<- ihs5$g100_d_nep*ihs5$ZN
+```
+
+2. Food group analysis dummy data frames
+```{r}
+#Disaggregation by food groups
+cereal <- ihs5 %>% filter(food.group=="Cereals")
+veg <- ihs5 %>% filter(food.group=="Vegetables")
+meat <- ihs5 %>% filter(food.group=="Meat")
+fat <- ihs5 %>% filter(food.group=="Fats & oils")
+leg <- ihs5 %>% filter(food.group=="Legumes & nuts")
+fruit <- ihs5 %>% filter(food.group=="Fruits")
+fish <- ihs5 %>% filter(food.group=="Fish")
+sugary <- ihs5 %>% filter(food.group=="Sugary foods/beverages")
+dairy <- ihs5 %>% filter(food.group=="Milk & milk products")
+egg <- ihs5 %>% filter(food.group=="Eggs")
+tuber <- ihs5 %>% filter(food.group=="Roots & tubers")
+misc <- ihs5 %>% filter(food.group=="Miscellaneous")
+
+```
+
+3. HH MN supply = Aggregate MN supply from all food items 
+```{r}
+d.zn <- ihs5 %>% group_by(HHID) %>% summarise(zn.supply=sum(zn.supply))
+
+```
+
+4. Aggregate zn supply per food group
+```{r}
+
+cereal.zn <- cereal %>% group_by(HHID) %>% summarise(zn.cereal=sum(zn.supply))
+tuber.zn <- tuber %>% group_by(HHID) %>% summarise(zn.tuber=sum(zn.supply))
+leg.zn <- leg %>% group_by(HHID) %>% summarise(zn.leg=sum(zn.supply))
+veg.zn <- veg %>% group_by(HHID) %>% summarise(zn.veg=sum(zn.supply))
+meat.zn <- meat %>% group_by(HHID) %>% summarise(zn.meat=sum(zn.supply))
+fruit.zn <- fruit %>% group_by(HHID) %>% summarise(zn.fruit=sum(zn.supply))
+dairy.zn <- dairy %>% group_by(HHID) %>% summarise(zn.dairy=sum(zn.supply))
+fat.zn <- fat %>% group_by(HHID) %>% summarise(zn.fat=sum(zn.supply))
+misc.zn <- misc %>% group_by(HHID) %>% summarise(zn.misc=sum(zn.supply))
+egg.zn <- egg %>% group_by(HHID) %>% summarise(zn.egg=sum(zn.supply))
+sugary.zn <- sugary %>% group_by(HHID) %>% summarise(zn.sugary=sum(zn.supply))
+fish.zn <- fish %>% group_by(HHID) %>% summarise(zn.fish=sum(zn.supply))
+
+```
+
+5. Merge
+```{r}
+#Merged DF with all dietary variables
+ihs5.zn<- merge(x=hh.hme, y=d.zn , by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn<- merge(x=ihs5.zn, y=cereal.zn, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn<- merge(x=ihs5.zn, y=tuber.zn, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn<- merge(x=ihs5.zn, y=leg.zn, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn<- merge(x=ihs5.zn, y=veg.zn, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn<- merge(x=ihs5.zn, y=meat.zn, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn<- merge(x=ihs5.zn, y=fruit.zn, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn<- merge(x=ihs5.zn, y=dairy.zn, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn<- merge(x=ihs5.zn, y=fat.zn, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn<- merge(x=ihs5.zn, y=misc.zn, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn<- merge(x=ihs5.zn, y=egg.zn, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn<- merge(x=ihs5.zn, y=sugary.zn, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.zn<- merge(x=ihs5.zn, y=fish.zn, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+
+```
+> APPARENT INTAKE METRIC BROKEN UP INTO TWO CATEGORIES:
+
+**CATEGORY 1: APPARENT INTAKE/AFE**
+
+#1. Supply per AFE
+
+```{r}
+#MN supply/AFE
+ihs5.zn$zn.afe.F <- ihs5.zn$zn.supply/ihs5.zn$hh.afe
+#AFE inadequacy
+ihs5.zn <- ihs5.zn %>% mutate(zn.afe.F.inad = ifelse(zn.afe.F<10.2, "Inadequate", "Adequate"))
+```
+
+**CATEGORY 2: APPARENT INTAKE/VULN.GROUP**
+
+#2. Supply per vulnerable group threshhold 
+
+```{r}
+#MN supply/AFE
+ihs5.zn$zn.vuln.F <- ihs5.zn$zn.supply/ihs5.zn$vulnerable_equiv_zn
+
+
+#Vulnerable inadequacy
+ihs5.zn <- ihs5.zn %>% filter(!is.na(zn.vuln.F))
+ihs5.zn$zn.vuln.F.inad <- NA
+
+for (i in 1:nrow(ihs5.zn)) {
+  if(ihs5.zn$zn.vuln.F[i] < ihs5.zn$vulnerable_equiv_H_AR_zn[i]){
+    ihs5.zn$zn.vuln.F.inad[i] <- 'Inadequate'
+  } else {
+    ihs5.zn$zn.vuln.F.inad[i] <- 'Adequate'
+  }
+}
+
+```
+
+> DONE: archive
+
+```{r}
+write.csv(ihs5.zn, here::here ("vuln.group/supply.Mn/results/zn.F.vuln.csv"))
+          
+```
