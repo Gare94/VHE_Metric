@@ -1,7 +1,7 @@
 # VHE_Metric
 
 
-##Introduction to the Vulnerable Household Equivalent (VHE) Metric 
+## Introduction to the Vulnerable Household Equivalent (VHE) Metric 
 
 
 Research has so far taken the ‘adult female’ (non-pregnant, non-lactating) as the default comparator household member (Tang et al., 2021). This has a sound basis, given the often higher requirements relative to energy than men, and for the direct benefit that women’s well-being often confers on their children. Here we undertook a household-specific analysis by comparing the apparent dietary micronutrient supply of the whole household to the requirements of the most vulnerable member of that household (VHE) based on greatest critical nutrient density threshold. Results were compared to the prevalence of apparent inadequacy arising from the use of the non-pregnant, non-lactating female requirements (AFE). We utilized the 2019/20 Malawi's Fifth Integrated Household Survey (IHS5) to compare the perfomance of the new VHE metric with the existing AFE metric
