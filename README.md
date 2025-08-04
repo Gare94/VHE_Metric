@@ -18,18 +18,16 @@ Below is a directory tree that outlines the structure of the repository:
 
 ```
 ├─ script/
-│  ├─ vuln.calc.R
+│  ├─ vhe.calc.R
 
 ├─ data/
-│  ├─ hh.spec.csv
-│  ├─ vuln.energy.req.xlsx                       
+│  ├─ H_AR_va_zn                      
 
 ├─ Supply/
-│  ├─ va.F.Rmd
-│  ├─ zn.F.Rmd 
+│  ├─ va.Rmd
+│  ├─ zn.Rmd 
 
 ├─ Summaries/
-│  ├─ summary.explor.R
 │  ├─ summary.vuln.Rmd 
 
 ```
