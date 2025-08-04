@@ -1,0 +1,135 @@
+---
+title: "Vitamin A Supply" Fortification set at status quo
+author: "Gareth Osman"
+date: "2025-04-07"
+output: html_document
+Objective: 'Using HH member specific nutrient vulnerability thresholds to calculate prevalence of apparent inadequacy'
+---
+
+> Packages
+
+```{r}
+library(tidyverse)
+```
+
+>Data
+
+```{r}
+ihs5 <- read.csv(here::here('paper_VHE/vuln.group/hh_mod_g_vulnfinal.csv'))
+ihs5 <- select(ihs5, -X)
+ihs5 <- ihs5 %>% filter(!is.na(VITA_RAE))
+
+hh.hme <- read.csv(here::here('paper_VHE/vuln.group/hh.eq.factors.csv'))
+hh.hme <- select(hh.hme, -X)
+
+```
+
+1. MN supply/food item = multiply quantity of foods consumed with MN composition of food
+#Vitamin A supply 
+
+```{r}
+ihs5$va.supply<- ihs5$g100_d_nep*ihs5$VITA_RAE
+
+```
+
+2. Food group analysis dummy data frames
+```{r}
+#Disaggregation by food groups
+cereal <- ihs5 %>% filter(food.group=="Cereals")
+veg <- ihs5 %>% filter(food.group=="Vegetables")
+meat <- ihs5 %>% filter(food.group=="Meat")
+fat <- ihs5 %>% filter(food.group=="Fats & oils")
+leg <- ihs5 %>% filter(food.group=="Legumes & nuts")
+fruit <- ihs5 %>% filter(food.group=="Fruits")
+fish <- ihs5 %>% filter(food.group=="Fish")
+sugary <- ihs5 %>% filter(food.group=="Sugary foods/beverages")
+dairy <- ihs5 %>% filter(food.group=="Milk & milk products")
+egg <- ihs5 %>% filter(food.group=="Eggs")
+tuber <- ihs5 %>% filter(food.group=="Roots & tubers")
+misc <- ihs5 %>% filter(food.group=="Miscellaneous")
+
+```
+
+3. HH MN supply = Aggregate MN supply from all food items 
+```{r}
+d.va <- ihs5 %>% group_by(HHID) %>% summarise(va.supply=sum(va.supply))
+
+```
+
+4. Aggregate va supply per food group
+```{r}
+
+cereal.va <- cereal %>% group_by(HHID) %>% summarise(va.cereal=sum(va.supply))
+tuber.va <- tuber %>% group_by(HHID) %>% summarise(va.tuber=sum(va.supply))
+leg.va <- leg %>% group_by(HHID) %>% summarise(va.leg=sum(va.supply))
+veg.va <- veg %>% group_by(HHID) %>% summarise(va.veg=sum(va.supply))
+meat.va <- meat %>% group_by(HHID) %>% summarise(va.meat=sum(va.supply))
+fruit.va <- fruit %>% group_by(HHID) %>% summarise(va.fruit=sum(va.supply))
+dairy.va <- dairy %>% group_by(HHID) %>% summarise(va.dairy=sum(va.supply))
+fat.va <- fat %>% group_by(HHID) %>% summarise(va.fat=sum(va.supply))
+misc.va <- misc %>% group_by(HHID) %>% summarise(va.misc=sum(va.supply))
+egg.va <- egg %>% group_by(HHID) %>% summarise(va.egg=sum(va.supply))
+sugary.va <- sugary %>% group_by(HHID) %>% summarise(va.sugary=sum(va.supply))
+fish.va <- fish %>% group_by(HHID) %>% summarise(va.fish=sum(va.supply))
+
+```
+
+5. Merge
+```{r}
+#Merged DF with all dietary variables
+ihs5.va<- merge(x=hh.hme, y=d.va , by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va<- merge(x=ihs5.va, y=cereal.va, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va<- merge(x=ihs5.va, y=tuber.va, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va<- merge(x=ihs5.va, y=leg.va, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va<- merge(x=ihs5.va, y=veg.va, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va<- merge(x=ihs5.va, y=meat.va, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va<- merge(x=ihs5.va, y=fruit.va, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va<- merge(x=ihs5.va, y=dairy.va, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va<- merge(x=ihs5.va, y=fat.va, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va<- merge(x=ihs5.va, y=misc.va, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va<- merge(x=ihs5.va, y=egg.va, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va<- merge(x=ihs5.va, y=sugary.va, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+ihs5.va<- merge(x=ihs5.va, y=fish.va, by.x='HHID', by.y='HHID', fill=-9999, all.x = TRUE)
+
+```
+> APPARENT INTAKE METRIC BROKEN UP INTO TWO CATEGORIES:
+
+**CATEGORY 1: APPARENT INTAKE/AFE**
+
+#1. Supply per AFE
+
+```{r}
+#MN supply/AFE
+ihs5.va$va.afe <- ihs5.va$va.supply/ihs5.va$hh.afe
+#AFE inadequacy
+ihs5.va <- ihs5.va %>% mutate(va.afe.inad = ifelse(va.afe <490, "Inadequate", "Adequate"))
+```
+
+**CATEGORY 2: APPARENT INTAKE/VULN.GROUP**
+
+#2. Supply per vulnerable group threshhold 
+
+```{r}
+#MN supply/AFE
+ihs5.va$va.vuln <- ihs5.va$va.supply/ihs5.va$vulnerable_equiv_va
+
+#Vulnerable inadequacy
+ihs5.va <- ihs5.va %>% filter(!is.na(va.vuln))
+ihs5.va$va.vuln.inad <- NA
+
+for (i in 1:nrow(ihs5.va)) {
+  if(ihs5.va$va.vuln[i] < ihs5.va$vulnerable_equiv_H_AR_va[i]){
+    ihs5.va$va.vuln.inad[i] <- 'Inadequate'
+  } else {
+    ihs5.va$va.vuln.inad[i] <- 'Adequate'
+  }
+}
+
+```
+
+> DONE: archive
+
+```{r}
+write.csv(ihs5.va, here::here ("paper_VHE/vuln.group/supply.Mn/results/va.vuln.csv"), row.names = FALSE)
+          
+```
