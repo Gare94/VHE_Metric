@@ -33,7 +33,7 @@ Below is a directory tree that outlines the structure of the repository:
 ```
 
 ## Data sources  
-1. This repo. utilizes the already tidied IHS5 data, which can be accessed via the link  * https://doi.org/10.5281/zenodo.13822686 <br>
+1. This repo. utilizes the already tidied IHS5 data, which can be accessed via the link  * https://github.com/Gare94/ihs5_cleaning_github <br>
 2. The scripts are reproducible and can be tailored to your data input
 3. The Malawi's Fifth Integrated Household Survey (IHS5) data can be requested using the link provided below: <br>
 
